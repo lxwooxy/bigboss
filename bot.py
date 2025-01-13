@@ -149,6 +149,7 @@ async def on_reaction_remove(reaction, user):
         return
 
     message_id = reaction.message.id
+    
 
     # Unpause task (💀)
     if reaction.emoji == "💀":
