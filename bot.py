@@ -31,10 +31,29 @@ try:
         tasks = json.load(f)
 except (FileNotFoundError, json.JSONDecodeError):
     tasks = {}
+    
+
+
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user}!')
+    print(f"Logged in as {bot.user}!")
+    
+    # Load tasks from the file
+    load_tasks()
+
+    # Fetch the summary channel
+    summary_channel_name = "summary"
+    summary_channel = discord.utils.get(bot.get_all_channels(), name=summary_channel_name)
+
+    if summary_channel:
+        print(f"Initializing summary channel: {summary_channel_name}")
+        await clear_summary_channel(summary_channel)
+    else:
+        print(f"Summary channel '{summary_channel_name}' not found. Please create it.")
+
+
+
 
 @bot.event
 async def on_reaction_add(reaction, user):
@@ -150,6 +169,8 @@ async def on_reaction_remove(reaction, user):
 
     message_id = reaction.message.id
     
+    # Debug: Log the reaction event
+    print(f"Reaction removed: {reaction.emoji} by {user}. Message ID: {message_id}")
 
     # Unpause task (💀)
     if reaction.emoji == "💀":
@@ -265,31 +286,53 @@ async def delete_task(ctx, *, task_name: str):
         # Task not found
         await ctx.send(f"No task found with the name: '{task_name}'")
 
+async def clear_summary_channel(channel):
+    """Clear all messages in the summary channel and create a new summary table."""
+    global summary_message_id
+
+    # Purge all messages in the channel
+    await channel.purge()
+    print(f"Cleared all messages in {channel.name}.")
+
+    # Create a new summary table
+    summary_message_id = None  # Reset the message ID
+    await update_summary_table(channel)
+    print("Created a new summary table.")
+
+
+
         
 @bot.command()
-async def clear(ctx):
-    """Clear all messages in the summary channel except the summary table."""
-    global summary_message_id
-    summary_channel_name = "summary"
+async def clear(ctx, channel_name: str = None):
+    """Clear all messages in a specified channel or the current channel."""
+    # Define allowed channels
+    allowed_channels = ["summary", "to-do", "logs"]
 
-    # Ensure the command is called in the summary channel
-    if ctx.channel.name != summary_channel_name:
-        await ctx.send(f"This command can only be used in the '{summary_channel_name}' channel.")
-        return
+    # Determine which channel to clear
+    target_channel = None
+    if channel_name:
+        # Search for the specified channel by name
+        target_channel = discord.utils.get(ctx.guild.channels, name=channel_name)
+        if not target_channel or target_channel.name not in allowed_channels:
+            await ctx.send(f"Invalid channel. Allowed channels are: {', '.join(allowed_channels)}.")
+            return
+    else:
+        # Default to the current channel
+        target_channel = ctx.channel
 
-    # Purge all messages except the summary table
-    await ctx.channel.purge(check=lambda m: m.id != summary_message_id)
+    # Purge all messages in the target channel
+    await target_channel.purge()
+    print(f"Cleared all messages in {target_channel.name}.")
 
-    # Fetch the summary table message and confirm it still exists
-    try:
-        summary_message = await ctx.channel.fetch_message(summary_message_id)
-        print("Summary table preserved.")
-    except discord.NotFound:
-        # If the summary table doesn't exist, reset the ID and recreate it
-        summary_message_id = None
-        await update_summary_table(ctx.channel)
+    # If clearing the summary channel, recreate the summary table
+    if target_channel.name == "summary":
+        global summary_message_id
+        summary_message_id = None  # Reset the summary message ID
+        await update_summary_table(target_channel)
+        print("Recreated the summary table.")
 
-    print("All other messages cleared.")
+
+
 
 
 
@@ -300,6 +343,18 @@ def save_tasks():
     """Save the current tasks dictionary to a JSON file."""
     with open(TASKS_FILE, "w") as f:
         json.dump(tasks, f, indent=4)
+        
+def load_tasks():
+    """Load tasks from a JSON file."""
+    global tasks
+    try:
+        with open(TASKS_FILE, "r") as file:
+            tasks = json.load(file)
+            print("Tasks loaded from file.")
+    except FileNotFoundError:
+        tasks = {}  # Start with an empty dictionary if the file doesn't exist
+        print("No tasks file found. Starting fresh.")
+
 
 # Run the bot
 
