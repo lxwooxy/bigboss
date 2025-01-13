@@ -354,6 +354,20 @@ def load_tasks():
     except FileNotFoundError:
         tasks = {}  # Start with an empty dictionary if the file doesn't exist
         print("No tasks file found. Starting fresh.")
+        
+@bot.command()
+async def reset(ctx):
+    """Reset the tasks dictionary and clear the tasks.json file."""
+    global tasks
+    tasks = {}  # Clear the in-memory tasks dictionary
+
+    # Overwrite the JSON file with an empty dictionary
+    with open(TASKS_FILE, "w") as file:
+        json.dump(tasks, file)
+
+    await ctx.send("All tasks have been reset and cleared from the JSON file.")
+    print("Tasks dictionary and JSON file have been reset.")
+
 
 
 # Run the bot
