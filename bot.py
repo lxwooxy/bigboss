@@ -332,13 +332,6 @@ async def clear(ctx, channel_name: str = None):
         print("Recreated the summary table.")
 
 
-
-
-
-
-
-
-
 def save_tasks():
     """Save the current tasks dictionary to a JSON file."""
     with open(TASKS_FILE, "w") as f:
