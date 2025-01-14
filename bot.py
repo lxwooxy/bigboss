@@ -369,7 +369,18 @@ async def reset(ctx):
     print("Tasks dictionary and JSON file have been reset.")
 
 
+# Help command that lists all available commands
+@bot.command()
+async def help(ctx):
+    help_message = """
+    **Available Commands:**
+    - **!clear [channel_name]**: Clear all messages in the specified channel. If no channel is provided, clear the current channel.
+    - **!delete_task [task_name]**: Delete a task by its name.
+    - **!export**: Export the task summary to a CSV file.
+    - **!reset**: Reset the tasks dictionary and clear the tasks.json file.
+    """
+    await ctx.send(help_message)
+    
 
 # Run the bot
-
 bot.run(TOKEN)
